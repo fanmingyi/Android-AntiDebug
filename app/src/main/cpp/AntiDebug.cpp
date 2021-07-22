@@ -14,8 +14,6 @@
 
 using namespace std;
 
-extern jobject g_callbackRef;
-extern jmethodID g_MethodCallback;
 
 MACRO_HIDE_SYMBOL JavaVM *g_jvm = NULL;
 
@@ -103,7 +101,7 @@ MACRO_HIDE_SYMBOL bool AntiDebug::IsHookByXPosed() {
 }
 
 jclass jDebugClazz = NULL;
-jmethodID mthIsDebuggerConn;
+jmethodID mthIsDebuggerConn = NULL;
 //检测调试器状态
 MACRO_HIDE_SYMBOL bool AntiDebug::isBeDebug() {
 
@@ -114,7 +112,7 @@ MACRO_HIDE_SYMBOL bool AntiDebug::isBeDebug() {
     if (jDebugClazz == NULL) {
         jDebugClazz = env->FindClass("android/os/Debug");
     }
-    if (mthIsDebuggerConn==NULL) {
+    if (mthIsDebuggerConn == NULL) {
         mthIsDebuggerConn = env->GetStaticMethodID(jDebugClazz, "isDebuggerConnected", "()Z");
     }
 
@@ -153,7 +151,7 @@ MACRO_HIDE_SYMBOL void *AntiDebug::antiDebugCallback(void *arg) {
                                             pAntiDebug->g_MethodCallback);
                     }
                 }
-                pAntiDebug->stopCheckFlag=true;
+                pAntiDebug->stopCheckFlag = true;
             }
         } catch (...) {
 
@@ -165,6 +163,7 @@ MACRO_HIDE_SYMBOL void *AntiDebug::antiDebugCallback(void *arg) {
 
 
     pAntiDebug->recycle();
+    (g_jvm)->DetachCurrentThread();
     return NULL;
 }
 
@@ -216,6 +215,8 @@ void AntiDebug::recycle() {
         env->DeleteGlobalRef((jobject) (mXPosedGlobalRef));
         //删除回调引用
         env->DeleteGlobalRef((jobject) (g_callbackRef));
+        //删除本地引用
+        env->DeleteLocalRef(jDebugClazz);
     } catch (...) {
         LOG_PRINT_E("回收资源错误");
     }
